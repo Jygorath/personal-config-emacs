@@ -1,0 +1,1091 @@
+* Configuration
+** Général
+*** Server
+Créer un serveur Emacs au démarrage. Des erreurs sont apparues.
+   #+BEGIN_SRC emacs-lisp
+   (server-force-delete)
+   (server-start)
+   #+END_SRC
+
+*** Package management                                            :formation:
+**** Dépôts de paquets Emacs
+Défini les dépôts contenant les packages à récupérer
+#+BEGIN_SRC emacs-lisp
+  (require 'package)
+  (setq package-enable-at-startup nil)
+  (setq package-archives 
+	'(("melpa" . "https://melpa.org/packages/")
+	  ("melpa-stable" . "https://stable.melpa.org/packages/")
+	  ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+	  ("elpa" . "https://elpa.gnu.org/packages/")))
+  (package-initialize)
+#+END_SRC
+
+**** Outil configuration des paquets (=use-package=)
+***** Installation des paquets
+Installe automatiquement tout les paquets appelé par =use-package=.
+#+BEGIN_SRC emacs-lisp
+  (require 'use-package-ensure)
+  (setq use-package-always-ensure t)
+#+END_SRC
+
+***** Mise à jour des paquets
+Garde les paquets appelés par =use-package= automatiquement mise à jour.
+#+BEGIN_SRC emacs-lisp
+  (use-package auto-package-update
+    :config
+    (setq auto-package-update-delete-old-versions t)
+    (setq auto-package-update-interval 3)
+    (setq auto-package-update-hide-results t)
+    (auto-package-update-maybe))
+#+END_SRC
+
+*** Session Managment
+#+BEGIN_SRC emacs-lisp
+  ;; Automatically save and restore sessions
+  (setq desktop-dirname             "~/.emacs.d"
+	;;desktop-base-file-name      ".emacs.desktop"
+	;;desktop-base-lock-name      ".emacs.desktop.lock"
+	desktop-path                '("~/.emacs.d/" "~")
+	desktop-save                t
+	desktop-files-not-to-save   "^$" ;reload tramp paths
+	desktop-load-locked-desktop nil
+	desktop-auto-save-timeout   30)
+
+  ;; Activer desktop-mode au démarrage d'Emacs
+  (add-hook 'emacs-startup-hook 'desktop-save-mode)
+
+  ;; Désactiver desktop-mode à la fermeture d'Emacs
+  (add-hook 'kill-emacs-hook (lambda ()
+			       (desktop-save-mode 0)))
+#+END_SRC
+
+*** Restart
+#+BEGIN_SRC emacs-lisp
+ (use-package restart-emacs)
+#+END_SRC
+
+** Apparence                                                      :formation:
+*** Icons
+#+BEGIN_SRC emacs-lisp
+  ;;ajout des icons
+  (use-package all-the-icons
+    :if (display-graphic-p)
+    :ensure t
+    :config
+    (unless (member "all-the-icons" (font-family-list))
+      (all-the-icons-install-fonts)))
+
+  ;;ajout des icons dans le buffer de complétion (ivy)
+  (use-package all-the-icons-completion
+    :ensure t
+    :config
+    (all-the-icons-completion-mode))
+#+END_SRC
+
+*** Page d'accueil
+#+BEGIN_SRC emacs-lisp
+  ;;ajout de la page d'accueil
+  (use-package dashboard
+    ;;si besoins un jour
+    ;;:init
+    ;;(add-hook 'after-init-hook 'dashboard-refresh-buffer)
+    ;;(add-hook 'dashboard-mode-hook 'my/dashboard-banner)
+    :ensure t
+    :config
+    (global-set-key (kbd "C-c a") 'dashboard-refresh-buffer)
+    (setq dashboard-banner-logo-title "Bienvenue sur Emacs !")
+    (setq dashboard-startup-banner 'logo)
+    (setq dashboard-center-content t)
+    (setq dashboard-items '((recents . 5)
+			    (bookmarks . 5)))
+    (setq dashboard-item-shortcuts '((recents . "r")
+				     (bookmarks . "m")))
+    (setq dashboard-item-names '(("Recent Files:" . "Fichiers récents :")
+				 ("Bookmarks:" . "Marque-pages :")))
+    ;;(setq dashboard-items-default-length 20)
+    ;;possibilité d'ajouter un widget spécifique (non utile pour l'instant)
+    (setq dashboard-icon-type 'all-the-icons)
+    (setq dashboard-heading-icons '((recents . "history")
+				    (bookmarks . "bookmark")))
+    ;;icons : agenda "calendar", projects "rocket", registers "database"
+    (setq dashboard-set-file-icons nil)
+    (setq dashboard-set-navigator t) ;;je ne comprend pas l'utilité ???
+
+    ;; Format: "(icon title help action face prefix suffix)"
+    (setq dashboard-navigator-buttons
+	  `(
+	    ((,(all-the-icons-faicon "home" :height 1.1 :v-adjust 0.0)
+	      "Page d'accueil"
+	      "Page d'accueil"
+	      (lambda (&rest _) (browse-url "https://www.youtube.com/")))
+	     (,(all-the-icons-octicon "history" :height 1.1 :v-adjust 0.0)
+	      "Restaurer Session" 
+	      "Restaurer Session" 
+	      (lambda (&rest _) (desktop-read))
+	      ;;warning : ??? (face)
+	      )
+	     (,(all-the-icons-faicon "power-off" :height 1.1 :v-adjust 0.0) ;;autre : refresh
+	      "Redémarrer" 
+	      "Redémarrer" 
+	      (lambda (&rest _) (restart-emacs))
+	      ;;warning : ??? (face)
+	      )
+	     (,(all-the-icons-faicon "question" :height 1.1 :v-adjust 0.0)
+	      "" 
+	      "Aide" 
+	      nil ;;afficher page d'aide
+	      ;;nil
+	      )
+	     )))
+
+    (setq dashboard-page-separator "\n\f\n")
+    (setq dashboard-set-init-info nil)
+    ;;(setq dashboard-set-footer nil)
+
+    (setq dashboard-footer-messages '("Dashboard is pretty cool!"))
+    ;;(setq dashboard-footer-icon (all-the-icons-octicon "dashboard" :height 1.1 :v-adjust -0.05 :face 'font-lock-keyword-face))
+
+    ;;faces : dashboard-banner-logo-title, dashboard-texte-banner, dashboard-heading, dashboard-items-face
+    (dashboard-setup-startup-hook))
+#+END_SRC
+
+**** Page Break Lines
+Affiche visuellement les changements de page par une barre horizontale.
+#+BEGIN_SRC emacs-lisp
+  (use-package page-break-lines
+    :ensure t
+    :config
+    (page-break-lines-mode t))
+#+END_SRC
+
+**** TODO custom dashboard-refresh-buffer pour fermer toutes les autres fenêtres avant ?
+**** TODO bouton "?" : apparition d'un paragraphe en dessous avec explication
+**** TODO créer une liste de footnotes à afficher
+*** Theme
+Active le thème demandé.
+Ne pas oublier *Moe-theme* !!
+
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/plugins/themes")
+  ;;(load-theme 'gruvbox-dark-soft t)
+  (load-theme 'modus-operandi-tinted t)
+#+END_SRC
+
+*** Olivetti
+#+BEGIN_SRC emacs-lisp
+  (use-package olivetti)
+#+END_SRC
+
+*** Dimmer
+#+BEGIN_SRC emacs-lisp
+  (use-package dimmer
+    :ensure t
+    :config
+    (setq dimmer-fraction 0.50)
+    (setq dimmer-buffer-exclusion-regexps '("^ \\*Minibuf-[0-9]+\\*$" "^ \\*Echo.*\\*$" "\*\\([^*]+\\)\*"))
+    (dimmer-mode t))
+#+END_SRC
+
+*** Modeline
+#+BEGIN_SRC emacs-lisp
+  (use-package telephone-line
+    :ensure t
+    :config
+    (setq telephone-line-rhs
+	  '((nil telephone-line-misc-info-segment)
+	    (accent telephone-line-simple-minor-mode-segment)
+	    (evil telephone-line-airline-position-segment)))
+    (setq telephone-line-lhs
+	  '((evil telephone-line-evil-tag-segment)
+	    (accent telephone-line-major-mode-segment telephone-line-vc-segment telephone-line-erc-modified-channels-segment telephone-line-process-segment)
+	    (nil telephone-line-projectile-segment telephone-line-buffer-segment)))
+    (set-face-attribute 'telephone-line-accent-inactive nil :foreground "#585858" :background "#dfd9cf" :box "#a59a94")
+    ;;(set-face-attribute 'telephone-line-accent-inactive nil :foreground "white" :background "grey11" :box nil)
+    (telephone-line-mode 1))
+#+END_SRC
+
+**** Hide Minor Mode
+#+BEGIN_SRC emacs-lisp
+  (use-package delight
+    :ensure t
+    :config
+    (delight '((rainbow-mode)
+	       (org-edna-mode nil "org-edna")
+	       (page-break-lines-mode nil "page-break-lines")
+	       ;;(abbrev-mode nil abbrev)
+	       (eldoc-mode nil "eldoc")
+	       (evil-collection-unimpaired-mode nil "evil-collection-unimpaired")
+	       (flyspell-mode "Fly" "flyspell")
+	       )))
+#+END_SRC
+
+*** Rainbow
+Affiche la couleur directement sur le code couleur RGB (dans le code).
+#+BEGIN_SRC emacs-lisp
+  (use-package rainbow-mode
+    :ensure t
+    :config
+    (rainbow-mode 1))
+#+END_SRC
+
+*** Org-modern
+#+BEGIN_SRC emacs-lisp
+  ;;(setq line-spacing 0.1) ;;jusqu'à 0.4
+  (use-package org-modern
+    :ensure t
+    )
+#+END_SRC
+
+*** Org-superstar
+Changement de l'aspect des "bullets".
+#+BEGIN_SRC emacs-lisp
+  (use-package org-superstar
+    :ensure t
+    :config
+    (add-hook 'org-mode-hook (lambda () (org-superstar-mode 1))))
+#+END_SRC
+
+*** Org Bullets
+    Customise les items graphique sur Org-Mode.
+  #+BEGIN_SRC emacs-lisp
+  ;;(use-package org-bullets
+  ;;:ensure t
+  ;;:config (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+  #+END_SRC
+    
+*** Autres
+    Réglages divers et futile (qu'on se le dise) 
+
+#+BEGIN_SRC emacs-lisp
+  (setq inhibit-startup-message t) ;;supprime le message de bienvenue
+  (electric-pair-mode t) ;;ferme automatiquement parenthèses et guillemets
+  (electric-indent-mode -1)
+  ;;(global-linum-mode t)  ;;affiche numéro de lignes
+  (menu-bar-mode -1) ;;cache la barre du menu
+  (tool-bar-mode -1) ;; cache la barre d'outils
+  (scroll-bar-mode -1) ;; cache la scrolle barre
+  (auto-fill-mode t) ;; casse les lignes automatiquement quand approprié
+  (setq org-hide-emphasis-markers t) ;;cache les marqueurs gras, surligné etc...
+  ;;(global-hl-line-mode t) ;;surbrillance la ligne actuel
+  (setq org-pretty-entities t)
+  ;;essai :
+  (setq org-fontify-whole-heading-line t)
+  (setq org-fontify-quote-and-verse-blocks t)
+
+  ;;changer la transparence du background
+  (defvar frame-transparency '(100 . 100))
+  (set-frame-parameter (selected-frame) 'alpha frame-transparency)
+
+  ;;Change la police d'écriture
+  ;;(set-frame-font "Iosevka Etoile-13:weight=light" nil t)
+  (set-face-attribute 'default nil :font "Iosevka-13:weight=light")
+  (set-face-attribute 'fixed-pitch nil :font "Iosevka-13:weight=light")
+  (set-face-attribute 'variable-pitch nil :font "Iosevka Aile-13:weight=light")
+
+  (setq-default fill-column 100)
+  (setq-default org-ascii-text-width 110)
+  (add-hook 'text-mode-hook 'turn-on-auto-fill)
+  (setq visible-bell t) ;;convertit le son de l'alarme en signal visuel
+#+END_SRC
+
+#+RESULTS:
+: t
+
+** Aide
+*** Mémo
+Ajoute un raccourci pour ouvrir automatiquement le fichier "Mémo".
+  #+BEGIN_SRC emacs-lisp
+  (defun open-memo ()
+  (interactive)
+  (find-file-other-window "~/.emacs.d/memo.org"))
+
+  (global-set-key (kbd "C-x ?") 'open-memo)
+  #+END_SRC
+
+*** Cheatsheet
+Petite mémo qui peut être appelé avec M-x =cheatsheet-show=.
+#+BEGIN_SRC emacs-lisp
+  (use-package cheatsheet
+    :config
+    (setq cheatsheet--cheat-list nil)
+    (cheatsheet-add-group 'Général
+			  '(:key "C-?" :description "mini-antisèche pour les raccourcis sans préfixe.")
+			  '(:key "C-h ?" :description "mini-antisèche pour le préfixe C-h.")
+			  '(:key "C-x ?" :description "mini-antisèche pour le préfixe C-x.")
+			  '(:key "C-c ?" :description "mini-antisèche pour le préfixe C-c.")
+			  '(:key "C-q" :description "sortir de l'antisèche."))
+    (cheatsheet-add-group 'Aide
+			  '(:key "C-h C-h" :description "interface d'aide à l'utilisation de C-h.")
+			  '(:key "C-h c" :description "description rapide d'un raccourci.")
+			  '(:key "C-h k" :description "description complète d'un raccourci.")
+			  '(:key "C-h f" :description "description complète d'une fonction.")
+			  '(:key "C-h m" :description "description complète d'un mode.")
+			  '(:key "C-h i" :description "ouvrir le manuel d'Emacs (Info).") 
+			  '(:key "C-h e" :description "ouvrir le buffer *Messages​*"))
+    (cheatsheet-add-group 'Fichiers
+			  '(:key "C-x C-f" :description "ouvrir/créer un fichier.")
+			  '(:key "C-x C-s" :description "enregistrer.")
+			  '(:key "C-x s" :description "enregistrer plusieurs fichiers.")
+			  '(:key "C-x C-w" :description "enregistrer sous.")
+			  '(:key "C-x k" :description "fermer le fichier.")
+			  '(:key "C-x C-c" :description "enregistrer et quitter."))
+    (cheatsheet-add-group 'Buffers
+			  '(:key "C-x b" :description "changer de buffer.")
+			  '(:key "C-x <DROITE>" :description "buffer suivant.")
+			  '(:key "C-x <GAUCHE>" :description "buffer précédent."))
+    (cheatsheet-add-group 'Fenêtres/Général
+			  '(:key "C-x 0" :description "supprimer la fenêtre.")
+			  '(:key "C-x 1" :description "étendre la fenêtre.")
+			  '(:key "C-x 2" :description "séparer le cadre à l'horizontale.")
+			  '(:key "C-x 3" :description "séparer le cadre à la verticale.")
+			  '(:key "C-x 4 f" :description "ouvrir fichier dans une nouvelle fenêtre.")
+			  '(:key "C-x 4 b" :description "ouvrir buffer dans une nouvelle fenêtre.")
+			  '(:key "C-x o" :description "changer de fenêtre.")
+			  '(:key "C-M-v" :description "scroller l'autre fenêtre vers le bas.")
+			  '(:key "C-M-S-v" :description "scroller l'autre fenêtre vers le haut."))
+    (cheatsheet-add-group 'Fenêtres/Zoom
+			  '(:key "C-x {" :description "réduire la largeur de la fenêtre.")
+			  '(:key "C-x }" :description "augmenter la largeur de la fenêtre.")
+			  '(:key "C-x ^" :description "agrandir la hauteur de la fenêtre.")
+			  '(:key "C-x +" :description "équilibrer les dimensions des fenêtres."))
+    (cheatsheet-add-group 'Marque-page
+			  '(:key "C-x r m" :description "créer marque-page.")
+			  '(:key "C-x r b" :description "aller au marque-page.")
+			  '(:key "C-x r o" :description "aller au marque-page dans une nouvelle fenêtre.")
+			  '(:key "C-x r q" :description "supprimer un marque-page.")
+			  '(:key "C-x r l" :description "lister les marque-pages."))
+    (cheatsheet-add-group 'Navigation/Texte
+			  '(:key "h" :description "aller à gauche.")
+			  '(:key "j" :description "aller en bas.")
+			  '(:key "k" :description "aller en haut.")
+			  '(:key "l" :description "aller à droite.")
+			  '(:key "0" :description "aller en début de ligne.")
+			  '(:key "$" :description "aller en fin de ligne.")
+			  '(:key "^" :description "aller au 1er caractère de la ligne")
+			  '(:key "w" :description "aller au mot suivant.")
+			  '(:key "b" :description "aller au mot précédent.")
+			  '(:key "e" :description "aller en fin de mot suivant.")
+			  '(:key ")" :description "aller à la phrase suivante.")
+			  '(:key "(" :description "aller à la phrase précédente.")
+			  '(:key "}" :description "aller au paragraphe suivant.")
+			  '(:key "{" :description "aller au paragraphe précédent."))
+    (cheatsheet-add-group 'Navigation/Écran
+			  '(:key "gg" :description "aller en début de fichier.")
+			  '(:key "G" :description "aller en fin de fichier.")
+			  '(:key "C-f" :description "scroller d'un écran vers le bas.")
+			  '(:key "C-b" :description "scroller d'un écran vers le haut.")
+			  '(:key "C-e" :description "scroller d'une ligne vers le bas.")
+			  '(:key "C-y" :description "scroller d'une ligne vers le haut.")
+			  '(:key "C-l" :description "re-centrer l'écran sur le curseur.")
+			  '(:key "H" :description "placer le curseur en haut de l'écran.")
+			  '(:key "M" :description "placer le curseur au milieu de l'écran.")
+			  '(:key "L" :description "placer le curseur en bas de l'écran."))
+    (cheatsheet-add-group 'Navigation/Recherche
+			  '(:key "t<caractère>" :description "aller juste avant le caractère suivant spécifié.")
+			  '(:key "f<caractère>" :description "aller sur le caractère suivant spécifié.")
+			  '(:key "T<caractère>" :description "aller juste avant le caractère précédent spécifié.")
+			  '(:key "F<caractère>" :description "aller sur le caractère précédent spécifié.")
+			  '(:key ";" :description "trouver le caractère suivant.")
+			  '(:key "," :description "trouver le caractère précédent.")
+			  '(:key "/" :description "rechercher après le curseur.")
+			  '(:key "?" :description "rechercher avant le curseur.")
+			  '(:key "n" :description "aller au résultat suivant.")
+			  '(:key "N" :description "aller au résultat précédent.")
+			  '(:key "*" :description "chercher le mot sous le curseur.")
+			  '(:key "C-o" :description "retourner à la dernière localisation."))
+    (cheatsheet-add-group 'Édition/Modes
+			  '(:key "<ESC>" :description "activer le mode Normal.")
+			  '(:key "i" :description "activer le mode Insertion.")
+			  '(:key "a" :description "activer le mode Insertion après le curseur.")
+			  '(:key "I" :description "activer le mode Insertion en fin de ligne.")
+			  '(:key "A" :description "activer le mode Insertion en début de ligne.")
+			  '(:key "o" :description "activer le mode Insertion sur la ligne suivante.")
+			  '(:key "O" :description "activer le mode Insertion sur la ligne précédente.")
+			  '(:key "v" :description "activer le mode Visuel.")
+			  '(:key "V" :description "activer le mode Visuel en ligne.")
+			  '(:key "C-v" :description "activer le mode Visuel en bloc.")
+			  '(:key ":" :description "activer le mode Ligne de Commande.")
+			  '(:key "M-x" :description "exécuter une fonction choisi."))
+    (cheatsheet-add-group 'Édition/Texte
+			  '(:key "x" :description "supprimer le caractère.")
+			  '(:key "r" :description "remplacer le caractère.")
+			  '(:key "s" :description "supprimer le caractère + activer le mode Insertion.")
+			  '(:key "d" :description "supprimer du texte.")
+			  '(:key "D" :description "supprimer le texte jusqu'à la fin de ligne.")
+			  '(:key "dd" :description "supprimer la ligne entièrement.")
+			  '(:key "c" :description "changer du texte.")
+			  '(:key "C" :description "changer le texte jusqu'à la fin de ligne.")
+			  '(:key "y" :description "copier du texte.")
+			  '(:key "yy" :description "copier la ligne entièrement.")
+			  '(:key "p" :description "coller du texte.")
+			  '(:key "P" :description "coller du texte avant le curseur.")
+			  '(:key "C-p" :description "parcourir le presse-papier.")
+			  '(:key "u" :description "annuler la dernière action."))
+    (cheatsheet-add-group 'Headline/Édition
+			  '(:key "<TAB>" :description "réduire/étendre un headline.")
+			  '(:key "S-<TAB>" :description "réduire/étendre tous les headlines.")
+			  '(:key "M-<flèche>" :description "déplacer les headlines.")
+			  '(:key "M-S-<gauche/droite>" :description "réorganiser un headline et ses dépendances.")
+			  '(:key "M-<RET>" :description "ajouter un headline à la ligne suivante.")
+			  '(:key "C-<RET>" :description "ajouter un headline à la fin de la section.")
+			  '(:key "M-S-<RET>" :description "ajouter un TODO.")
+			  '(:key "C-S-<RET>" :description "ajouter un TODO à la fin de la section.")
+			  '(:key "C-c C-t" :description "changer d'état entre TODO/DONE"))
+    (cheatsheet-add-group 'Headline/Navigation
+			  '(:key "C-c C-n" :description "aller au headline suivant.")
+			  '(:key "C-c C-p" :description "aller au headline précédent.")
+			  '(:key "C-c C-f" :description "aller au headline suivant du même niveau.")
+			  '(:key "C-j" :description "aller au headline suivant du même niveau.")
+			  '(:key "C-c C-b" :description "aller au headline précédent du même niveau.")
+			  '(:key "C-k" :description "aller au headline précédent du même niveau.")
+			  '(:key "C-c C-u" :description "aller au headline parent.")
+			  '(:key "C-c C-k" :description "afficher le plan d'un headline.")
+			  '(:key "C-c *" :description "(dé)transformer une ligne en headline.")
+			  '(:key "C-c ^" :description "trier les headlines.")
+			  '(:key "C-c C-*" :description "(dé)transformer un item en headline.")
+			  '(:key "C-x n s" :description "réduire le fichier à un headline.")
+			  '(:key "C-x n w" :description "étendre le fichier totalement."))
+    (cheatsheet-add-group 'Structure/Liste
+			  '(:key "<TAB>" :description "réduire/étendre un item.")
+			  '(:key "M-<flèche>" :description "déplacer les items.")
+			  '(:key "M-S-<gauche/droite>" :description "réorganiser un item et ses dépendances.")
+			  '(:key "S-<haut/bas>" :description "naviguer dans les items de même niveau.")
+			  '(:key "S-<droite/gauche>" :description "modifier l'aspect des tirets.")
+			  '(:key "M-<RET>" :description "ajouter un item à la ligne suivante.")
+			  '(:key "M-S-<RET>" :description "insérer une checkbox.")
+			  '(:key "C-c C-c" :description "(dé)cocher une checkbox.")
+			  '(:key "C-c ^" :description "trier les items."))
+    (cheatsheet-add-group 'Correcteur/Général
+			  '(:key "C-M-$" :description "corriger tout le fichier.")
+			  '(:key "M-$" :description "corriger un mot.")
+			  '(:key "C-;" :description "corriger automatiquement le mot précédent.")
+			  '(:key "C-c f" :description "(dés)activer le mode mineur Flyspell."))
+    (cheatsheet-add-group 'Correcteur/Menu
+			  '(:key "<SPC>" :description "ignorer temporairement une erreur.")
+			  '(:key "a" :description "ignorer définitivement une erreur (jusqu'à la prochaine session).")
+			  '(:key "r" :description "modifier un mot erroné.")
+			  '(:key "R" :description "modifier toutes les occurrences d'un mot erroné.")
+			  '(:key "i" :description "ajouter un mot dans son dictionnaire personnel.")
+			  '(:key "u" :description "ajouter un mot dans son dictionnaire personnel sans la majuscule.")
+			  '(:key "q" :description "quitter la correction et revenir au point initial.")
+			  '(:key "x" :description "quitter la correction et revenir au point initial.")
+			  '(:key "X" :description "quitter la correction et laisser le curseur à sa position.")
+			  '(:key "?" :description "interface d'aide du correcteur."))
+    (cheatsheet-add-group 'Abréviations
+			  '(:key "M-x define-mode-abbrev" :description "définir une abréviation.")
+			  '(:key "M-x define-global-abbrev" :description "définir une abréviation.")
+			  '(:key "C-x a g" :description "définir une abréviation selon le mot sous le curseur.")
+			  '(:key "C-x a i g" :description "définir une expansion selon l'abréviation sous le curseur.")
+			  '(:key "M-x unexpand-abbrev" :description "annuler une expansion d'abréviation.")
+			  '(:key "M-'" :description "insérer un préfixe à une abréviation.")
+			  '(:key "M-x list-abbrevs" :description "lister les abréviations.")
+			  '(:key "M-x edit-abbrevs" :description "éditer les abréviations.")
+			  '(:key "C-q" :description "insérer un caractère sans étendre l'abréviation."))
+    (cheatsheet-add-group 'Exportation
+			  '(:key "C-c C-e" :description "interface d'exportation.")
+			  '(:key "C-c @" :description "sélectionner le headline.")
+			  '(:key "C-s" :description "exporter seulement un headline (et ses dépendances).")
+			  '(:key "C-x C-;" :description "commenter la/les ligne(s).")
+			  '(:key "C-c ;" :description "commenter le headline."))
+    (cheatsheet-add-group 'Divers
+			  '(:key "C-x 8 <RET>" :description "insérer un caractère spécifié.")
+			  '(:key "C-c C-x \​" :description "(dés)activer la visualisation des indices et exposants.")
+			  '(:key "M-c" :description "mettre une majuscule au mot.")
+			  '(:key "C-g" :description "annuler la commande en cours.")
+			  '(:key "." :description "répéter la dernière action.")
+			  '(:key "M-q" :description "mettre en forme le paragraphe."))
+    (defun custom-cheatsheet-show ()
+      "Affichage du cheatsheet en haut du fichier"
+      (interactive)
+      (cheatsheet-show)
+      (evil-goto-first-line))
+    (global-set-key (kbd "C-h z") 'custom-cheatsheet-show))
+#+END_SRC
+
+*** Hydra
+#+BEGIN_SRC emacs-lisp
+  (use-package hydra
+    :config
+    (defhydra hydra-C-x ()
+      "Général (préfixe C-x)"
+      ("C-f" find-file "ouvrir/créer fichier" :column "Fichiers")
+      ("C-s" save-buffer "enregistrer")
+      ("s" save-some-buffers "enregistrer plusieurs")
+      ("k" kill-buffer "fermer fichier")
+      ("C-w" write-file "enregistrer sous")
+      ("C-c" save-buffers-kill-terminal "enregistrer et quitter")
+      ("b" ivy-switch-buffer "changer buffer" :column "Buffers")
+      ("<right>" next-buffer "buffer suivant")
+      ("<left>" previous-buffer "buffer précédent")
+      ("0" delete-window "supprimer fenêtre" :column "Fenêtre")
+      ("1" delete-other-windows "étendre fenêtre")
+      ("2" split-window-below "séparer horizontale")
+      ("3" split-window-right "séparer verticale")
+      ("4" hydra-C-x-4/body "ouvrir dans autre fenêtre" :exit t)
+      ;; ("4 b" switch-to-buffer-other-window "ouvrir buffer autre fenêtre")
+      ("o" other-window "changer fenêtre")
+      ("r m" bookmark-set "créer marque-page" :column "Marque-page")
+      ("r b" bookmark-jump "aller au marque-page")
+      ("r o" bookmark-jump-other-window "aller au marque-page autre fenêtre")
+      ("r q" bookmark-delete "supprimer marque-page")
+      ("r l" bookmark-bmenu-list "lister marque-pages")
+      ("?" custom-cheatsheet-show "aide raccourci" :column "Autre" :exit t)
+      ("q" nil "quitter")
+      )
+    (defhydra hydra-C-x-4 ()
+      "Ouvrir dans une autre fenêtre "
+      ("f" find-file-other-window "fichier")
+      ("b" switch-to-buffer-other-window "buffer")
+      ("q" nil "quitter")
+      )
+    (defhydra hydra-C-c ()
+      "Général (préfixe C-c)"
+      ("C-c C-n" outline-next-visible-heading "headline suivant" :column "Headline")
+      ("C-c C-p" outline-previous-visible-heading "headline précédent")
+      ("C-c C-f" org-forward-heading-same-level "headline suivant même niveau")
+      ("C-c C-b" org-backward-heading-same-level "headline précédent même niveau")
+      ("C-c C-u" outline-up-heading "aller headline parent")
+      ("C-c C-k" org-kill-note-or-show-branches "afficher plan headline")
+      ("C-c C-t" org-todo "changer état TODO/DONE" :column "Cocher/Décocher")
+      ("C-c C-c" org-ctrl-c-ctrl-c "(dé)cocher checkbox")
+      ("C-c C-e" org-export-dispatch "interface exportation" :column "Exportation")
+      ("C-c @" org-mark-subtree "sélectionner headline")
+      ("C-c ;" org-toggle-comment "commenter headline")
+      ("?" custom-cheatsheet-show "aide raccourci" :column "Autre" :exit t)
+      ("q" nil "quitter")
+      )
+    (defhydra hydra-C-h ()
+      "Général (préfixe C-h)"
+      ("C-h c" describe-key-briefly "description rapide raccourci" :column "Aide")
+      ("C-h c" describe-key-briefly "description rapide raccourci")
+      ("C-h k" describe-key "description complète raccourci")
+      ("C-h f" describe-function "description complète fonction")
+      ("C-h m" describe-mode "description complète mode")
+      ("C-h i" info "ouvrir manuel Emacs")
+      ("C-h e" view-echo-area-messages "ouvrir *Messages​*")
+      ("C-?" hydra-no-prefix/body "mini-antisèche sans préfixe" :column "Autre" :exit t)
+      ("C-x ?" hydra-C-x/body "mini-antisèche si préfixe C-x" :exit t)
+      ("C-c ?" hydra-C-c/body "mini-antisèche si préfixe C-c" :exit t)
+      ("?" custom-cheatsheet-show "aide raccourci" :exit t)
+      ("q" nil "quitter")
+      )
+    (defhydra hydra-no-prefix ()
+      "Général (no prefix)"
+      ("h" evil-backward-char "gauche" :column "Navigation/Texte")
+      ("j" evil-next-line "bas")
+      ("k" evil-previous-line "haut")
+      ("l" evil-forward-char "droite")
+      ("0" evil-beginning-of-line "début ligne")
+      ("$" evil-end-of-line "fin ligne")
+      ;; ("^" evil-first-non-blank "1er caractère ligne")
+      ("w" evil-forward-word-begin "mot suivant")
+      ("b" evil-backward-word-begin "mot précédent")
+      ;; ("e" evil-forward-word-end "mot suivant (fin)")
+      (")" org-forward-sentence "phrase suivante")
+      ;; ("(" org-backward-sentence "phrase précédente")
+      ("}" org-forward-paragraph "paragraphe suivant")
+      ;; ("{" org-backward-paragraph "paragraphe précédent")
+      ("gg" evil-goto-first-line "début fichier" :column "Navigation/Écran")
+      ("G" evil-goto-line "fin fichier")
+      ("C-f" evil-scroll-page-down "page suivante")
+      ("C-b" evil-scroll-page-up "page précédente")
+      ("C-e" evil-scroll-line-down "ligne suivante")
+      ("C-y" evil-scroll-line-up "ligne précédente")
+      ("C-l" recenter-top-bottom "centrer écran")
+      ("<ESC>" evil-force-normal-state "mode Normal" :column "Édition/Modes")
+      ("i" evil-insert "mode Insertion (avant curseur)")
+      ("a" evil-append "mode Insertion (après curseur)")
+      ("o" evil-open-below "mode Insertion (ligne après)")
+      ("O" evil-open-above "mode Insertion (ligne avant)")
+      ("v" evil-visual-char "mode Visuel")
+      ("V" evil-visual-line "mode Visuel (ligne)")
+      ("C-v" evil-visual-block "mode Visuel (bloc)")
+      (":" evil-ex "mode Ligne de Commande")
+      ("x" evil-delete-char "supprimer caractère" :column "Édition/Texte")
+      ("r" evil-replace "remplacer caractère")
+      ("s" evil-substitute "changer caractère")
+      ("d" evil-delete "supprimer texte")
+      ("c" evil-change "changer texte")
+      ("y" evil-yank "copier texte")
+      ("p" evil-paste-after "coller texte")
+      ("C-p" evil-paste-pop "parcourir presse-papier")
+      ("u" evil-undo "annuler action")
+      ("." evil-repeat "répéter action")
+      ("<tab>" org-cycle "cycler headline/item" :column "Headline/Liste")
+      ;; ("S-<tab>" org-shifttab "cycler tous headlines")
+      ("M-<left>" org-metaleft "déplacer headlines/item (gauche)")
+      ("M-<right>" org-metaright "déplacer headlines/item (droite)")
+      ("M-<up>" org-metaup "déplacer headlines/item (haut)")
+      ("M-<down>" org-metadown "déplacer headlines/item (bas)")
+      ("M-S-<left>" org-shiftmetaleft "réorganiser headline/item (gauche)")
+      ("M-S-<right>" org-shiftmetaright "réorganiser headline/item (droite)")
+      ;; ("S-<up>" org-shiftup "naviguer items même niveau (haut)")
+      ;; ("S-<down>" org-shiftdown "naviguer items même niveau (bas)")
+      ;; ("S-<left>" org-shiftleft "modifier aspect tirets")
+      ("S-<right>" org-shiftright "modifier aspect tirets")
+      ("M-<return>" org-meta-return "ajouter headline/item")
+      ("C-<return>" org-insert-heading-respect-content "ajouter headline (fin section)")
+      ("M-S-<return>" org-insert-todo-heading "ajouter TODO/checkbox")
+      ("C-S-<return>" org-insert-todo-heading-respect-content "ajouter TODO (fin section)")
+      ("C-;" flyspell-auto-correct-previous-word "corriger mot précédent (auto)" :column "Autre")
+      ("C-g" keyboard-quit "annuler commande")
+      ("?" custom-cheatsheet-show "aide raccourci" :exit t)
+      ("q" nil "quitter")
+      )
+    (global-set-key (kbd "C-x ?") 'hydra-C-x/body)
+    (global-set-key (kbd "C-h ?") 'hydra-C-h/body)
+    (define-key org-mode-map (kbd "C-c ?") nil)
+    (global-set-key (kbd "C-c ?") 'hydra-C-c/body)
+    (global-set-key (kbd "C-?") 'hydra-no-prefix/body)
+    )
+#+END_SRC
+
+#+RESULTS:
+: t
+
+** Commandes
+*** Evil (all)
+    Configuration evil et la leader key
+#+BEGIN_SRC emacs-lisp
+  (use-package evil
+  :init 
+  (setq evil-want-keybinding nil)
+  (setq evil-want-C-i-jump nil)
+  :ensure t
+  :config
+  (evil-mode 1))
+
+  (evil-define-key 'normal org-mode-map (kbd "<tab>") #'org-cycle)
+
+  (use-package evil-leader
+  :ensure t
+  :config
+  (setq evil-want-keybinding nil)
+  (global-evil-leader-mode)
+    (evil-leader/set-leader "<SPC>"))
+
+  (use-package evil-collection
+    :after evil
+    :ensure t
+    :config
+    (evil-collection-init))
+
+#+END_SRC
+
+*** Key Chord
+    #+BEGIN_SRC emacs-lisp
+    (add-to-list 'load-path "~/.emacs.d/plugins/key-chord")
+    (require 'key-chord)
+    (key-chord-mode 1)
+    #+END_SRC
+
+** Complétion                                                     :formation:
+   Pour l'instant je mets Ivy, je considère pouvoir changer avec
+   Vertico (pour commencer) ou même Helm (like a badass).
+
+   #+BEGIN_SRC emacs-lisp
+   (ivy-mode 1)
+   (use-package ivy :demand
+   :config
+   (setq ivy-use-virtual-buffers t
+   ivy-count-format "%d/%d "))
+   #+END_SRC
+   
+** Abréviations                                                   :formation:
+#+BEGIN_SRC emacs-lisp
+(setq-default abbrev-mode t)
+(add-hook 'text-mode-hook #'abbrev-mode)
+(setq abbrev-file-name "~/.emacs.d/.abbrev_defs")
+(setq save-abbrevs 'silently)
+#+END_SRC
+
+** Correction linguistique                                        :formation:
+*** Orthographique
+Utilise Hunspell pour mettre en place plusieurs dictionnaires.
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load "ispell"
+  ;; Configure `LANG`, otherwise ispell.el cannot find a 'default
+  ;; dictionary' even though multiple dictionaries will be configured
+  ;; in next line.
+  (setenv "LANG" "en_US.UTF-8")
+  (setq ispell-program-name "hunspell")
+  ;; Configure German, Swiss German, and two variants of English.
+  (setq ispell-dictionary "fr_FR,en_GB,en_US")
+  ;; ispell-set-spellchecker-params has to be called
+  ;; before ispell-hunspell-add-multi-dic will work
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic "fr_FR,en_GB,en_US"))
+  ;; For saving words to the personal dictionary, don't infer it from
+  ;; the locale, otherwise it would save to ~/.hunspell_de_DE.
+  (setq ispell-personal-dictionary (expand-file-name ".hunspell_personal"))
+
+;; The personal dictionary file has to exist, otherwise hunspell will
+;; silently not use it.
+(unless (file-exists-p ispell-personal-dictionary) 
+  (write-region "" nil ispell-personal-dictionary nil 0))
+
+; créer un raccourci pour "M-x ispell"
+(global-set-key (kbd "C-M-$") 'ispell)
+#+END_SRC
+
+Permet de passer certaines région lors de l'utilisation du correcteur orthographique.
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'ispell-skip-region-alist
+  '("\\[\\[" . "\\]\\]"))
+(add-to-list 'ispell-skip-region-alist
+  '("^\\#\\+BEGIN_SRC" . "^\\#\\+END_SRC"))
+(add-to-list 'ispell-skip-region-alist
+  '("^:PROPERTIES:" . "^:END:"))
+#+END_SRC
+
+Active Flyspell pour chaque fichier Org-mode.
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'org-mode-hook 'flyspell-mode)
+  (setq flyspell-issue-message-flag nil)
+  (defun flyspell-toggle ()
+    "Turn Flyspell on if it is off, or off if it is on.  When turning on, it uses `flyspell-on-for-buffer-type' so code-vs-text is handled appropriately."
+    (interactive)
+    (if (symbol-value flyspell-mode)
+      (progn ; flyspell is on, turn it off
+	(message "Flyspell off")
+	(flyspell-mode -1))
+      (progn ; else - flyspell is off, turn it on
+	(message "Flyspell on")
+	(flyspell-mode 1))))
+
+  ; active / désactive flyspell mode à la demande
+  (global-set-key (kbd "C-c f") 'flyspell-toggle)
+
+  ; modifie l'aspect du soulignage en forme de vague (au lieu d'un trait droit)
+  (with-eval-after-load "flyspell"
+  (setq flyspell-abbrev-p t)
+  (set-face-underline 'flyspell-incorrect '(:color "#fb4933" :style wave)))
+
+(use-package flyspell-correct-ivy
+  :after flyspell
+  :bind (:map flyspell-mode-map
+        ("C-;" . flyspell-auto-correct-previous-word)
+        ;("C-;" . flyspell-correct-previous)
+        ;("C-;" . flyspell-correct-next)
+        ("M-$" . flyspell-correct-at-point))
+  ;;:custom (setq flyspell-correct-interface 'flyspell-correct-ivy)
+)
+#+END_SRC
+
+** Raccourcis Global
+   Basé sur le concept de "leader key" (qui est bien pratique).
+   #+BEGIN_SRC emacs-lisp
+		  (evil-leader/set-key
+		  "ai" 'anki-editor-insert-note
+		  "ap" 'anki-editor-push-notes
+		  "ac" 'anki-editor-cloze-region
+		  "ao" 'anki-editor-overlap-region
+		  "e" 'org-emphasize)
+	       (defun anki-editor-overlap-region (&optional arg hint)
+		 "Cloze region with number ARG."
+		 (interactive "p\nsHint (optional): ")
+		 (unless (region-active-p) (error "No active region"))
+		 (anki-editor-overlap (region-beginning) (region-end) arg hint))
+
+	       (defun anki-editor-overlap (begin end arg hint)
+		 "Cloze region from BEGIN to END with number ARG."
+		 (let ((region (buffer-substring begin end)))
+		   (save-excursion
+		     (delete-region begin end)
+		     (insert (with-output-to-string
+			       (princ (format "[[oc%d::%s" (or arg 1) region))
+			       (unless (string-blank-p hint) (princ (format "::%s" hint)))
+			       (princ "]]")))))) 
+;;Allow Emacs to access content from the clipboard
+(setq select-enable-clipboard t
+select-enable-primary t)
+   #+END_SRC
+
+    Remplace la touche <ESC> par "jj" pour revenir au mode Normal.
+    #+BEGIN_SRC emacs-lisp
+    (key-chord-define evil-insert-state-map "jj" 'evil-normal-state)
+    #+END_SRC
+
+*** Bookmarks
+    #+BEGIN_SRC emacs-lisp
+    ;;Défini un raccouris clavier pour supprimer un marque-page
+    (global-set-key (kbd "C-x r q") 'bookmark-delete)
+    (global-set-key (kbd "C-x r o") 'bookmark-jump-other-window)
+
+    ;;Sauvegarde les marques-pages à chaque fois qu'ils sont modifiés 
+    ;;(et pas à la fermeture d'Emacs)
+    (setq bookmark-save-flag 1)
+    #+END_SRC
+
+** Divers
+*** Anki
+    Permet de rajouter des cartes dans Anki à partir d'org-mode !!
+
+    #+BEGIN_SRC emacs-lisp
+    (use-package anki-editor :after org)
+    (setq anki-editor-org-tags-as-anki-tags nil)
+    #+END_SRC
+
+*** Navigation
+#+BEGIN_SRC emacs-lisp
+;finir une phrase avec 1 espace seulement (et pas 2 comme par défaut)
+(setq sentence-end-double-space nil)
+#+END_SRC
+
+#+RESULTS:
+
+** Org Mode
+*** Raccourcis
+   Quelques raccourcis clavier.
+
+   #+BEGIN_SRC emacs-lisp
+   (key-chord-define evil-normal-state-map "cc" 'org-capture)
+    
+   (evil-leader/set-key
+   "oa" 'org-agenda
+   "ol" 'org-store-link
+   "oi" 'org-insert-link
+   "oo" 'org-open-at-point
+   "oc" 'org-todo
+   "ot" 'org-set-tags-command
+   "os" 'org-schedule
+   "or" 'org-refile
+   "od" 'org-deadline)
+   #+END_SRC
+
+*** Org Capture
+    Des templates personnalisés.
+
+#+BEGIN_SRC emacs-lisp
+    (setq org-capture-templates '(
+
+    ("m" "Cheatsheet save" plain (file "~/Brain/cheatsheet_save.org")
+    "(\"%c\" %(format \"%s\" (lookup-key (current-active-maps) (kbd (current-kill 0)))) \"%(current-kill 1)\")\n"
+    :immediate-finish t)
+
+  ("key" function "description")
+    ("a" "Anki Basic" entry (file+headline "~/Brain/anki_cards.org" "Anki Card")
+    "* Basic %U\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basique\n:ANKI_DECK: Mega\n:END:\n** Recto\n%?\n** Verso\n%x\n")
+
+    ("k" "Anki Cloze" entry (file+headline "~/Brain/anki_cards.org" "Anki Card")
+    "* Cloze %U\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Texte à trous\n:ANKI_DECK: Mega\n:END:\n** Texte\n%x\n** Verso Extra\n")
+
+    ("t" "Todo" entry (file+headline "~/Brain/notes.org" "Inbox")
+    "** TODO %?\n"
+    :empty-lines-after 2)
+
+    ("c" "Chapter" entry (file "~/Brain/chapter.org")
+    "* Chapitre : %^{CHAPTER} [/] %^G%^G\n** TODO Lire : %\\1 :READ:\n:PROPERTIES:\n:TRIGGER: next-sibling todo!(NEXT)\n:END:\n** TODO Fiche : %\\1\n:PROPERTIES:\n:TRIGGER: next-sibling todo!(NEXT)\n:BLOCKER: previous-sibling\n:END:\n** TODO Flashcard : %\\1 :flashcard:\n:PROPERTIES:\n:BLOCKER: previous-sibling\n:END:\n"
+    :immediate-finish t)
+
+    ("s" "Spaced Repetition Revision" entry (file "~/Brain/chapter.org")
+    "** TODO Réviser : %? :spaced:READ:\n"
+    :empty-lines-after 2)
+
+    ("n" "Note" entry (file+headline "~/Brain/notes.org" "Inbox")
+    "** %?\n"
+    :empty-lines-after 2)
+
+    ("b" "Bookmark" entry (file+headline "~/Brain/notes.org" "Inbox")
+    "** %(org-cliplink-capture) :bookmark:\n:PROPERTIES:\n:TIMESTAMP: %U\n:END:\n%?"
+    :empty-lines-after 2)
+
+    ("e" "ECNi Mistakes" entry (file+olp "~/Brain/notes.org" "Medecine" "ECNi mistakes")
+    "*** TODO Flashcard from mistake n°%T :ecni:\n%x\n"
+    :empty-lines-after 1 
+    :immediate-finish t)
+
+
+
+    ))
+
+      ;;permet d'utiliser le buffer de complétion des tags
+      ;;(add-hook 'org-capture-mode-hook (lambda () (setq-local org-tag-alist (org-global-tags-completion-table))))
+#+END_SRC
+
+*** Date Org
+    Permet d'afficher le "timestamp", soit l'heure et la date un TODO devient DONE sur Org-Mode.
+
+    #+BEGIN_SRC emacs-lisp
+    ;;(setq org-log-done 'time)
+    #+END_SRC
+    
+*** Org Roam
+     Installation et initialisation d'OrgRoam, mon 2ème cerveau !!
+
+     #+BEGIN_SRC emacs-lisp
+     (use-package org-roam
+     :ensure t
+     :init
+     (setq org-roam-v2-ack t)
+     :custom
+     (org-roam-directory "~/Brain")
+     (org-roam-completion-everywhere t)
+     :bind (
+     ("C-c n l" . org-roam-buffer-toggle)
+     ("C-c n f" . org-roam-node-find)
+     ("C-c n i" . org-roam-node-insert)
+     :map org-mode-map
+     ("C-M-i" . completion-at-point))
+     :config 
+     (org-roam-setup))
+
+     ;; Add archive in org-roam
+     (setq org-roam-file-extensions '("org" "org_archive"))
+     #+END_SRC
+
+*** Org clock time
+Permet de suivre le temps passé sur une tâche.
+
+   #+BEGIN_SRC emacs-lisp
+     (evil-leader/set-key
+     "oki" 'org-clock-in
+     "oko" 'org-clock-out
+     "okq" 'org-clock-cancel
+     "okj" 'org-clock-goto
+     "okd" 'org-clock-display
+     "okt" 'org-clock-report
+     "okx" 'org-clock-in-last)
+     
+     ;;Défini le temps AFK que je pourrai enlever ou ajouter si besoins
+     (setq org-clock-idle-time 5)
+   #+END_SRC
+
+*** Org archive
+   #+BEGIN_SRC emacs-lisp
+     (evil-leader/set-key
+     "oqe" 'org-archive-subtree-default
+     "oqt" 'org-toggle-archive-tag
+     "oqs" 'org-archive-subtree)
+   #+END_SRC
+
+*** Org Edna
+Amélioration de la dépendance entre TODO
+   #+BEGIN_SRC emacs-lisp
+   (org-edna-mode)
+   #+END_SRC
+
+*** Org Export
+   #+BEGIN_SRC emacs-lisp
+      ;; Permet d'exporter avec les lignes cassé comme je veux trql
+      (setq org-export-preserve-breaks t)
+
+      ;;ignore broken links when export
+      (setq org-export-with-broken-links t)
+
+      ;;Changer préférence d'exportation en docx (au lieu de odt)
+      (setq org-odt-preferred-output-format "docx")
+
+      ;;Ne pas exporter la table des matières
+      ;;(setq org-export-with-toc nil)
+   #+END_SRC
+
+   #+RESULTS:
+   : t
+
+*** Autres
+    #+BEGIN_SRC emacs-lisp
+      ;;Définit l'indentation
+      (setq org-list-description-max-indent 5)
+
+      ;;Défini une liste de tag récurrent
+      (setq org-tag-alist '((:newline . nil) ("@home" . ?h) ("@school" . ?s) ("@library" . ?l) ("@hospital" . ?o) ("@computer" . ?c) (:newline . nil) ("book" . ?b) ("flashcard" . ?f)))
+      (setq org-tag-persistent-alist '((:newline . nil) ("@home" . ?h) ("@school" . ?s) ("@library" . ?l) ("@hospital" . ?o) ("@computer" . ?c) (:newline . nil) ("book" . ?b) ("flashcard" . ?f)))
+
+      ;;Modifie le cycle des tâches
+      (setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "PROG(p)" "|" "DONE(d)" "CANCEL(c)")))
+
+      ;;Définit priorité des TODOs
+      (setq org-highest-priority ?A)
+      (setq org-lowest-priority ?C)
+      (setq org-default-priority ?A)
+
+      ;; Définit les couleurs suivant les priorités
+      (setq org-priority-faces '((?A . (:foreground "#F0DFAF" :weight bold)) (?B . (:foreground "LightSteelBlue")) (?C . (:foreground "OliveDrab"))))
+      ;;custom colors for TODO keywords
+      (setq org-todo-keyword-faces
+	'(("TODO" . (:background "#CD6155" :weight bold :foreground "white")) ("NEXT" . (:background "#5499C7" :weight bold :foreground "white")) ("PROG" . (:background "#EB984E" :weight bold :foreground "white")) ("DONE" . (:background "#52BE80" :weight bold :foreground "white")) ("CANCEL" . (:background "#99A3A4" :weight bold :foreground "white"))))
+    #+END_SRC
+
+*** Org Agenda
+    Défini le répertoire ou les fichiers d'où seront récupérés les listes TODO
+    #+BEGIN_SRC emacs-lisp
+      ;;Modifier fichier ?????
+      (setq org-agenda-files (list "~/Brain/agenda_list.org"))
+
+      ;;Défini des view spécifique de l'agenda
+      (setq org-agenda-custom-commands
+      '(
+
+      ("d" "Daily view"
+      ((agenda ""
+	((org-agenda-span 'day)
+	 ;;(org-agenda-skip-function '(org-agenda-skip-entry-if 'regexp "\\(TODO\\|NEXT\\).*:spaced:"))
+	 (org-deadline-warning-days 365)))
+       (todo "PROG"
+	((org-agenda-overriding-header "In-Progress")))
+       (todo "NEXT"
+	((org-agenda-overriding-header "Next to do")))
+       nil))
+
+      ("n" "Next Chapter"
+      ((tags-todo "READ-OLD")
+      nil))
+
+      ("o" "Old Chapter"
+      ((tags-todo "OLD")
+      nil))
+
+      ;;("s" "Search"
+      ;;((tags-todo "+life")
+       ;;(tags-todo "+@computer")
+      ;;nil))
+
+       ))
+
+      ;;(setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+      (setq org-refile-targets nil)
+      (setq org-refile-use-outline-path 'file)
+
+      (setq org-outline-path-complete-in-steps nil)
+      (setq org-agenda-compact-blocks t)
+      (setq org-agenda-start-with-log-mode t)
+    #+END_SRC
+
+    Ouvre l'agenda sur la fenêtre actuelle (et non pas sur une nouvelle fenêtre)
+    #+BEGIN_SRC emacs-lisp
+    (setq org-agenda-window-setup (quote current-window))
+    (setq org-agenda-todo-ignore-deadlines (quote all))
+    (setq org-agenda-todo-ignore-scheduled (quote all))
+    (setq org-agenda-tags-todo-honor-ignore-options t)
+
+    ;;Pas de couleur d'avertissement de deadline imminente pour les tâches planifié
+    (setq org-agenda-skip-deadline-prewarning-if-scheduled (quote pre-scheduled))
+
+    ;;Défini les items sans priorité comme inférieur
+    (setq org-priority-default 68)
+    #+END_SRC
+
+** Yequake
+    #+BEGIN_SRC emacs-lisp
+    (add-to-list 'load-path "~/.emacs.d/plugins/yequake-master")
+    (require 'yequake)
+
+(setq yequake-frames
+   '(("org-capture" 
+      (buffer-fns . (yequake-org-capture))
+      (width . 0.75)
+      (height . 0.5)
+      (alpha . 0.95)
+      (frame-parameters . ((undecorated . t)
+                           (skip-taskbar . t)
+                           (sticky . t))))))
+    #+END_SRC
+    
+** Lisp
+  #+BEGIN_SRC emacs-lisp
+   (load (expand-file-name "~/quicklisp/slime-helper.el"))
+   (setq inferior-lisp-program "sbcl")
+   #+END_SRC
+
